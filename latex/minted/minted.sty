@@ -29,7 +29,8 @@
     [2025/03/06 v3.6.0 Yet another Pygments shim for LaTeX]
 \RequirePackage{catchfile}
 \RequirePackage{etoolbox}
-\RequirePackage{fvextra}[2024/10/16]
+% \RequirePackage{fvextra}[2024/10/16]
+\RequirePackage{fvextraa}
 \RequirePackage{latex2pydata}[2024/10/16]
 \RequirePackage{pdftexcmds}
 \RequirePackage{pgfkeys}
@@ -44,7 +45,7 @@
   \minted@error{#1}%
   \batchmode\read -1 to \minted@fatalerror@exitnow}
 \def\minted@warning#1{\PackageWarning{minted}{#1}}
-\edef\MintedExecutable{\detokenize{latexminted}}
+\edef\MintedExecutable{\detokenize{latexminted.py}}
 \edef\minted@executable@minversion{\detokenize{0.5.0}}
 \def\minted@executable@setminversioncomponents{%
   \expandafter\minted@executable@setminversioncomponents@i
@@ -1435,6 +1436,127 @@
     \let\FV@GetKeyValues\minted@FV@GetKeyValues@orig
     \let\minted@FV@GetKeyValues@i\minted@undefined
     \FV@GetKeyValues{##1}[##2]}}
+
+\begingroup
+\catcode`\!=0
+\catcode`\[=1
+\catcode`\]=2
+\catcode`!\=12
+!catcode`!{=12
+!catcode`!}=12
+!xdef!b@str[\begin{!mintedpyoptvalueof[literalenvname]}]
+!xdef!e@str[\end{!mintedpyoptvalueof[literalenvname]}]
+!catcode`!\=0
+\endgroup
+\newbool{minted@debugN}%
+\setbool{minted@debugN}{true}%
+\ifbool{minted@debugN}{\immediate\typeout{The Verbatim environment begin and end markers are: \b@str, \e@str}}{}%
+
+\newcount\actual@line@cnt
+\actual@line@cnt=\z@
+\newcount\env@begin@index
+\env@begin@index=\z@
+
+\def\minted@lineprocessor@adjustrange#1{%
+\ifbool{minted@debugN}{%
+  \immediate\typeout{Minted range adjustment. Iteration \FancyVerbBufferIndex\space of \csname\FancyVerbBufferLengthName\endcsname. %
+    Start:\FancyVerbStartNum, Stop:\FancyVerbStopNum, Actual line:\the\actual@line@cnt, Last benv index:\the\env@begin@index.}}{}%
+\newcount\@FancyVerbStartNum%
+\@FancyVerbStartNum=\numexpr\FancyVerbStartNum\relax%
+\newcount\@FancyVerbStopNum%
+\@FancyVerbStopNum=\numexpr\FancyVerbStopNum\relax%
+\IfBeginWith*{#1}{\b@str}{%
+  \ifbool{minted@debugN}{%
+    \immediate\typeout{Found the start of a Verbatim environment. Buffer index:\FancyVerbBufferIndex. Actual line:\the\actual@line@cnt}}{}%
+  \env@begin@index=\numexpr\FancyVerbBufferIndex\relax%
+}{%
+\IfBeginWith*{#1}{\e@str}{%
+  \def\env@first@line{0}%
+  \def\env@last@line{-1}%
+  \let\env@lines@num\@tempcnta%
+  \env@lines@num=\numexpr\FancyVerbBufferIndex - \env@begin@index - 1\relax%
+  \ifbool{minted@debugN}{%
+    \immediate\typeout{Found the end of a Verbatim environment. Buffer index:\FancyVerbBufferIndex. \the\env@lines@num\space lines. Actual line:\the\actual@line@cnt}}{}%
+  \newif\ifGob@Env%
+  \Gob@Envfalse%
+  \ifnum\numexpr\@FancyVerbStartNum - \actual@line@cnt\relax > \z@% Not started yet
+    \ifnum\numexpr\@FancyVerbStartNum - \actual@line@cnt - \env@lines@num\relax > \z@% Does not start in env
+      \Gob@Envtrue%
+    \else% Starts in Env
+      \edef\env@first@line{\number\numexpr\@FancyVerbStartNum - \actual@line@cnt\relax}%
+    \fi%
+  \else% Already started
+    \ifbool{minted@debugN}{\immediate\typeout{The range is already started.}}{}%
+  \fi%
+  % Calc lastline
+  \ifnum\numexpr\@FancyVerbStopNum\relax > \m@ne%
+    \unless\ifnum\numexpr\@FancyVerbStopNum - \actual@line@cnt\relax > \z@% Already Ended
+      \ifbool{minted@debugN}{\immediate\typeout{The range is already ended.}}{}%
+      \Gob@Envtrue%
+    \else%
+      \ifnum\numexpr\@FancyVerbStopNum - \actual@line@cnt - \env@lines@num\relax < \z@% Ends inside env
+        \edef\env@last@line{\number\numexpr\@FancyVerbStopNum - \actual@line@cnt\relax}\fi%
+    \fi%
+  \fi%
+  \ifGob@Env% fvset
+    \gobble@lines\env@begin@index\FancyVerbBufferIndex%
+  \else%
+    \edef\fvopts{firstline=\env@first@line, lastline=\env@last@line}%
+    \ifbool{minted@debugN}{\immediate\typeout{Setting range for the env at index \number\env@begin@index. \fvopts.}}{}%
+    \expandafter\xdef\csname\FancyVerbBufferLineName\the\env@begin@index Pre\endcsname{\noexpand\fvset{\fvopts}}%
+    \expandafter\xdef\csname\FancyVerbBufferLineName\FancyVerbBufferIndex Post\endcsname{\noexpand\fvset{firstline, lastline}}% Do not affect escaped parts
+  \fi%
+  \ifbool{minted@debugN}{\immediate\typeout{Setting counters}}{}%
+  \env@begin@index=\z@%
+  \advance\actual@line@cnt\env@lines@num%
+  }{% Normal line
+  \ifnum\env@begin@index = \z@% Not in an environment
+    \advance\actual@line@cnt\@ne%
+    \ifboolexpr{test{\ifnumcomp{\actual@line@cnt}{<}{\@FancyVerbStartNum}} or%
+      (test{\ifnumcomp{\@FancyVerbStopNum}{>}{\m@ne}} and test{\ifnumcomp{\actual@line@cnt}{>}{\@FancyVerbStopNum}})}{%
+      \global\@namedef{\FancyVerbBufferLineName\FancyVerbBufferIndex Pre}{\gobble@line}}{}%
+    \ifbool{minted@debugN}{\immediate\typeout{Escapedline. Pre=%
+      \ifcsname\FancyVerbBufferLineName\FancyVerbBufferIndex Pre\endcsname\csname\FancyVerbBufferLineName\FancyVerbBufferIndex Pre\endcsname\fi}}{}%
+  \fi%
+  }%
+}%
+}%
+
+\def\gobble@lines#1#2{%
+  \ifbool{minted@debugN}{\immediate\typeout{Gobbling \number\numexpr#1\relax to \number\numexpr#2\relax inc.}}{}%
+  \begingroup
+  \@tempcnta=\numexpr#1\relax%
+  \@tempcntb=\numexpr#2 + 1\relax% inclusive
+  \loop
+    \global\@namedef{\FancyVerbBufferLineName\the\@tempcnta Pre}{\gobble@line}%
+    \advance\@tempcnta\@ne%
+  \ifnum\@tempcnta < \@tempcntb
+  \repeat
+  \endgroup
+}%
+
+\def\minted@input@highlightfile#1{%
+  \newif\ifAdj@Range%
+  \Adj@Rangetrue%
+  \ifx\FancyVerbStartNum\z@\ifx\FancyVerbStopNum\m@ne\Adj@Rangefalse\fi\fi%
+  \ifAdj@Range%
+    \begingroup% Read to buffer and adjust for escapes
+    \actual@line@cnt=\z@%
+    \env@begin@index=\z@%
+    \ifbool{minted@debugN}{\immediate\typeout{Reading #1 into buffer}}{}%
+    %TODO: use local buffer
+    \VerbatimInputToBuffer[firstline, lastline, globalbuffer]{#1}%
+    \ifbool{minted@debugN}{\immediate\typeout{\csname\FancyVerbBufferLengthName\endcsname\space lines read.}}{}%
+    \IterateBuffer{\minted@lineprocessor@adjustrange}%
+    \ifbool{minted@debugN}{\immediate\typeout{Inserting buffer.}}{}%
+    \InsertBufferPrePost%
+    \VerbatimClearBuffer%
+    \endgroup
+  \else%
+    \input{#1}%
+  \fi%
+}%
+
 \def\minted@highlight@i{%
   \pydatabufferkeyedefvalue{pyopt.lexer}{\minted@lexer}%
   \pydatabufferkeyedefvalue{pyopt.commandprefix}{\minted@styleprefix}%
@@ -1446,7 +1568,8 @@
      {\minted@codewrapper{%
         \minted@def@FV@GetKeyValues@standardcatcodes
         \minted@debug@input
-        \input{\minted@highlightfilepath}}%
+        % \input{\minted@highlightfilepath}
+        \minted@input@highlightfile{\minted@highlightfilepath}}%
       \minted@addcachefilename{\minted@highlightfilename}}%
      {\ifbool{minted@canexec}%
        {\ifbool{minted@fasthighlightmode}%

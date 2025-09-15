@@ -48,6 +48,7 @@ latexminted = 'latexminted.cmdline:main'
 
 
 [tool.setuptools]
+packages = ["latexminted"]
 license-files = ['LICENSE*', 'CHANGELOG*', 'RESTRICTED_SHELL_ESCAPE*', '*.1']
 
 [tool.setuptools.dynamic]
@@ -56,3 +57,8 @@ version = {attr = 'latexminted.__version__'}
 
 [tool.ruff]
 line-length = 120
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = ["latexminted_test"]

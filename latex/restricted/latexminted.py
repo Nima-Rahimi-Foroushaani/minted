@@ -264,7 +264,11 @@ if sys.version_info[:2] < (3, 8):
                 sys.exit(python_proc.returncode)
     sys.exit('latexminted requires Python >= 3.8, but a compatible Python executable was not found on PATH')
 
-
+# import logging
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format="%(asctime)s - %(levelname)s - %(message)s"
+# )
 
 
 # Check for required wheel dependencies and add them to Python's `sys.path`.
@@ -275,7 +279,25 @@ required_wheel_packages = (
     'latex2pydata',
     'pygments',
 )
-wheel_paths = [p for p in script_resolved.parent.glob('*.whl') if p.name.startswith(required_wheel_packages)]
+
+# Build the package search paths list
+package_search_paths = [script_resolved.parent] + [
+    Path(p.strip()) for p in os.getenv("MINTED_SEARCH_PATHS", "").split(os.pathsep) if p.strip()
+]
+
+# Collect the first matching .whl path for each required package
+wheel_paths = []
+def add_first(pkg):
+    for psp in package_search_paths:
+        for whl_path in psp.glob("*.whl"):
+            if whl_path.name.startswith(pkg):
+                wheel_paths.append(whl_path)
+                return
+for pkg in required_wheel_packages: add_first(pkg)
+
+
+# logging.info('Found whl(s):', wheel_paths)
+
 if not wheel_paths:
     sys.exit('latexminted failed to find bundled wheels *.whl')
 for pkg in required_wheel_packages:
@@ -369,4 +391,15 @@ if sys.platform == 'win32' and not os.getenv('LATEXMINTED_SUBPROCESS'):
 
 
 from latexminted.cmdline import main
-main()
+try:
+    # import debugpy
+    # debugpy.listen(5678)  # You can change the port number if necessary
+    # print("Waiting for debugger to attach...")
+    # debugpy.wait_for_client()
+
+    main()
+except (SystemExit, Exception) as e:
+#     breakpoint()
+    import traceback
+    tb = traceback.format_exc()
+    pass

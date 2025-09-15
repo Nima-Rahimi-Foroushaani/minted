@@ -1,0 +1,65 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Python Build",
+            "type": "shell",
+            "command": "python3",
+            "args": [ "-m", "build" ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+        },
+        {
+            "label": "config-latexminted",
+            "type": "shell",
+            "command": "latexminted.py",
+            "args": ["config",  "--timestamp", "20250507155258",  "--debug", "D79695776A5B40F7CADBEE1F91A85C82"],
+            "options": {
+                "env": {
+                    "PATH": "${workspaceFolder}/../latex/restricted:${env:PATH}",
+                    "MINTED_SEARCH_PATHS": "./lib/minted/python/dist/:/usr/local/texlive/2025/texmf-dist/scripts/minted/"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "cleanconfig-latexminted",
+            "type": "shell",
+            "command": "latexminted.py",
+            "args": ["cleanconfig",  "--timestamp", "20250507155258",  "--debug", "D79695776A5B40F7CADBEE1F91A85C82"],
+            "options": {
+                "env": {
+                    "PATH": "${workspaceFolder}/../latex/restricted:${env:PATH}",
+                    "MINTED_SEARCH_PATHS": "./lib/minted/python/dist/:/usr/local/texlive/2025/texmf-dist/scripts/minted/"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "batch-latexminted",
+            "type": "shell",
+            "command": "latexminted.py",
+            "args": ["batch",  "--timestamp", "20250507155258",  "--debug", "D79695776A5B40F7CADBEE1F91A85C82"],
+            "options": {
+                "env": {
+                    "PATH": "${workspaceFolder}/../latex/restricted:${env:PATH}",
+                    "MINTED_SEARCH_PATHS": "./lib/minted/python/dist/:/usr/local/texlive/2025/texmf-dist/scripts/minted/"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "pre-latexminted-highlight",
+            "dependsOn": ["config-latexminted", "cleanconfig-latexminted", "batch-latexminted"],
+            "dependsOrder": "sequence",
+            "problemMatcher": [],
+            "runOptions": {
+                "runOn": "default"
+            }
+        }
+    ]
+}
