@@ -1,0 +1,40 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "latexminted",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/../latex/restricted/latexminted.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PATH": "${workspaceFolder}/../latex/restricted:${env:PATH}",
+                "SELFAUTOLOC": "/usr/local/texlive/2025/bin/x86_64-linux",
+                "MINTED_SEARCH_PATHS": "${workspaceFolder}/dist/:/usr/local/texlive/2025/texmf-dist/scripts/minted/",
+                "PYTHONPATH": "${workspaceFolder}/dist:${env:PYTHONPATH}"
+            },
+            "args": "batch --timestamp 20250507155311 --debug D79695776A5B40F7CADBEE1F91A85C82",
+            "justMyCode": false
+        },
+        {
+            "name": "Python Debugger: Attach using Process Id",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+        },
+        {
+            "name": "Python Debugger: cmdline",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "latexminted.cmdline",
+            "args": [],
+            "console": "integratedTerminal"
+        }
+    ]
+}

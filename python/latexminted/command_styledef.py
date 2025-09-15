@@ -16,18 +16,22 @@ from pygments.styles import get_style_by_name
 from pygments.util import ClassNotFound
 from .messages import Messages
 from .restricted import MintedTempRestrictedPath
+from .styles import get_local_style_by_name
 
 
 
 
 def styledef(*, md5: str, timestamp: str, debug: bool, messages: Messages, data: dict[str, str]) -> str | None:
     messages.set_context(data)
-    style = data['style']
+    style = data.get('style', 'default')
     try:
-        StyleClass = get_style_by_name(style)
+        StyleClass = get_local_style_by_name(style)
     except ClassNotFound:
-        messages.append_error(rf'Pygments style \detokenize{{"{style}"}} was not found')
-        return
+        try:
+            StyleClass = get_style_by_name(style)
+        except ClassNotFound:
+            messages.append_error(rf'Pygments style \detokenize{{"{style}"}} was not found')
+            return
 
     style_defs = LatexFormatter(style=StyleClass, commandprefix=data['commandprefix']).get_style_defs().lstrip()
     styledef_path = MintedTempRestrictedPath(data['cachepath']) / data['styledeffilename']

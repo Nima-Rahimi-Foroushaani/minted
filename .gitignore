@@ -26,3 +26,4 @@
 *.tmp*
 *.toc
 *.url
+dist/

@@ -16,7 +16,7 @@ import textwrap
 from typing import Any, Callable
 from latexrestricted import latex_config, PathSecurityError
 from pygments import highlight as pygments_highlight
-from pygments.formatters.latex import LatexEmbeddedLexer, LatexFormatter
+from pygments.formatters.latex import LatexEmbeddedLexer
 from pygments.lexer import Lexer
 from pygments.lexers import find_lexer_class_by_name
 from pygments.token import Name, Keyword
@@ -24,6 +24,8 @@ from pygments.util import ClassNotFound
 from .err import CustomLexerError
 from .messages import Messages
 from .restricted import load_custom_lexer, MintedTempRestrictedPath
+from .formatters.latex import LatexFormatter
+from .lexers import find_local_lexer_class_by_name
 
 
 
@@ -386,21 +388,26 @@ def highlight(*, md5: str, timestamp: str, debug: bool, messages: Messages, data
     translated_lexer_opts = {pygments_translations.get(k, k): v for k, v in lexer_opts.items()}
     pygments_lexer: Lexer
     try:
-        PygmentsLexer = find_lexer_class_by_name(py_opts['lexer'])
+        PygmentsLexer = find_local_lexer_class_by_name(py_opts['lexer'])
+        messages.append_warning(rf'''Local lexer for \detokenize{{"{py_opts['lexer']}"}} is found: \detokenize{{"{PygmentsLexer!r}"}}''')
     except ClassNotFound:
-        if not py_opts['lexer'].endswith('.py') and '.py:' not in py_opts['lexer']:
-            messages.append_error(rf'''Pygments lexer \detokenize{{"{py_opts['lexer']}"}} is unknown''')
-            return
         try:
-            PygmentsLexer = load_custom_lexer(py_opts['lexer'])
-        except CustomLexerError as e:
-            messages.append_error(rf'\detokenize{{{str(e)}}}')
-            return
-        except Exception as e:
-            messages.append_error(
-                rf'''Failed to load custom lexer \detokenize{{"{py_opts['lexer']}"}}; see \detokenize{{{messages.errlog_file_name}}} if it exists''')
-            messages.append_errlog(e)
-            return
+            PygmentsLexer = find_lexer_class_by_name(py_opts['lexer'])
+            messages.append_warning(rf'''Lexer for \detokenize{{"{py_opts['lexer']}"}} is found: \detokenize{{"{PygmentsLexer!r}"}}''')
+        except ClassNotFound:
+            if not py_opts['lexer'].endswith('.py') and '.py:' not in py_opts['lexer']:
+                messages.append_error(rf'''Pygments lexer \detokenize{{"{py_opts['lexer']}"}} is unknown''')
+                return
+            try:
+                PygmentsLexer = load_custom_lexer(py_opts['lexer'])
+            except CustomLexerError as e:
+                messages.append_error(rf'\detokenize{{{str(e)}}}')
+                return
+            except Exception as e:
+                messages.append_error(
+                    rf'''Failed to load custom lexer \detokenize{{"{py_opts['lexer']}"}}; see \detokenize{{{messages.errlog_file_name}}} if it exists''')
+                messages.append_errlog(e)
+                return
 
 
     if any(custom_lexer_opts.values()):
